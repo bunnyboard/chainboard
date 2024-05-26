@@ -1,0 +1,25 @@
+{
+  "database": {
+    "connectionUri": "",
+    "databaseName": ""
+  },
+  "blockchains": {
+    "ethereum": {
+      "chainId": 1,
+      "name": "ethereum",
+      "family": "evm",
+      "startBlock": 15537394,
+      "nativeCoin": {
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "nodeRpcs": [
+        "https://eth.llamarpc.com",
+        "https://eth-pokt.nodies.app",
+        "https://rpc.ankr.com/eth",
+        "https://eth-mainnet.public.blastapi.io",
+        "https://eth.drpc.org"
+      ]
+    }
+  }
+}

@@ -12,10 +12,14 @@ export interface ContextStorages {
 export interface IChainAdapter {
   name: string;
 
-  config: Blockchain;
+  chainConfig: Blockchain;
 
   storages: ContextStorages;
 
+  // return latest block number of the chain
+  getBlockNumber: () => Promise<number>;
+
+  // query block data
   getBlockData: (blockNumber: number) => Promise<BlockData | null>;
 
   run: (options: RunCollectorOptions) => Promise<void>;

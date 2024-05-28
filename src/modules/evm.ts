@@ -2,27 +2,18 @@ import BigNumber from 'bignumber.js';
 import { PublicClient, createPublicClient, http } from 'viem';
 import { getBlock, getBlockNumber } from 'viem/actions';
 
-import EnvConfig from '../../configs/envConfig';
-import logger from '../../lib/logger';
-import { formatTime, normalizeAddress, sleep } from '../../lib/utils';
-import ExecuteSession from '../../services/execute';
-import { Blockchain, ChainFamilies } from '../../types/configs';
-import { BlockData } from '../../types/domains';
-import { ContextStorages, IChainAdapter } from '../../types/namespaces';
-import { RunCollectorOptions } from '../../types/options';
+import logger from '../lib/logger';
+import { normalizeAddress, sleep } from '../lib/utils';
+import { Blockchain, ChainFamilies } from '../types/configs';
+import { BlockData } from '../types/domains';
+import { ContextStorages } from '../types/namespaces';
+import ChainAdapter from './chain';
 
-export default class EvmChainAdapter implements IChainAdapter {
-  public readonly name: string = 'evm';
-  public readonly config: Blockchain;
-  public readonly storages: ContextStorages;
+export default class EvmChainAdapter extends ChainAdapter {
+  public readonly name: string = 'chain.evm';
 
-  private execute: ExecuteSession;
-
-  constructor(storages: ContextStorages, config: Blockchain) {
-    this.storages = storages;
-    this.config = config;
-
-    this.execute = new ExecuteSession();
+  constructor(storages: ContextStorages, chainConfig: Blockchain) {
+    super(storages, chainConfig);
   }
 
   private getPublicClient(nodeRpc: string): PublicClient {
@@ -37,7 +28,7 @@ export default class EvmChainAdapter implements IChainAdapter {
   }
 
   public async getBlockNumber(): Promise<number> {
-    for (const nodeRpc of this.config.nodeRpcs) {
+    for (const nodeRpc of this.chainConfig.nodeRpcs) {
       const client = this.getPublicClient(nodeRpc);
       const blockNumber = await getBlockNumber(client);
 
@@ -47,7 +38,7 @@ export default class EvmChainAdapter implements IChainAdapter {
 
       logger.warn('failed to get block number from rpc', {
         service: this.name,
-        chain: this.config.name,
+        chain: this.chainConfig.name,
         rpc: nodeRpc,
       });
 
@@ -58,11 +49,11 @@ export default class EvmChainAdapter implements IChainAdapter {
   }
 
   public async getBlockData(blockNumber: number): Promise<BlockData | null> {
-    if (this.config.family !== ChainFamilies.evm) {
+    if (this.chainConfig.family !== ChainFamilies.evm) {
       return null;
     }
 
-    for (const nodeRpc of this.config.nodeRpcs) {
+    for (const nodeRpc of this.chainConfig.nodeRpcs) {
       const client = this.getPublicClient(nodeRpc);
       const rawBlock = await getBlock(client, {
         blockNumber: BigInt(blockNumber),
@@ -75,8 +66,8 @@ export default class EvmChainAdapter implements IChainAdapter {
 
       if (rawBlock) {
         const blockData: BlockData = {
-          chain: this.config.name,
-          family: this.config.family,
+          chain: this.chainConfig.name,
+          family: this.chainConfig.family,
           number: Number(rawBlock.number),
           timestamp: Number(rawBlock.timestamp),
 
@@ -86,7 +77,7 @@ export default class EvmChainAdapter implements IChainAdapter {
           totalCoinTransfer: '0',
 
           // eip 1559
-          totalCoinBurnt: this.config.eip1559 ? '0' : undefined,
+          totalCoinBurnt: this.chainConfig.eip1559 ? '0' : undefined,
 
           deployedContracts: 0,
 
@@ -126,7 +117,7 @@ export default class EvmChainAdapter implements IChainAdapter {
 
         // count coin were burnt if any, EIP-1559
         // coin burnt = baseFeePerGas * gasUsed
-        if (rawBlock.baseFeePerGas && blockData.totalCoinBurnt && this.config.eip1559) {
+        if (rawBlock.baseFeePerGas && blockData.totalCoinBurnt && this.chainConfig.eip1559) {
           blockData.totalCoinBurnt = new BigNumber(blockData.totalCoinBurnt)
             .plus(
               new BigNumber(rawBlock.baseFeePerGas.toString())
@@ -153,7 +144,7 @@ export default class EvmChainAdapter implements IChainAdapter {
 
       logger.warn('failed to get block data from rpc', {
         service: this.name,
-        chain: this.config.name,
+        chain: this.chainConfig.name,
         rpc: nodeRpc,
       });
 
@@ -161,83 +152,5 @@ export default class EvmChainAdapter implements IChainAdapter {
     }
 
     return null;
-  }
-
-  private async runCollector(options: RunCollectorOptions): Promise<void> {
-    const latestBlock = await this.getBlockNumber();
-
-    let startBlock = options.fromBlock ? options.fromBlock : this.config.startBlock;
-
-    const syncStateKey = `state-${this.config.name}`;
-    if (!options.force) {
-      const state = await this.storages.database.find({
-        collection: EnvConfig.mongodb.collections.cachingStates.name,
-        query: {
-          name: syncStateKey,
-        },
-      });
-      if (state) {
-        startBlock = state.blockNumber;
-      }
-    }
-
-    logger.info('start to update block data', {
-      service: this.name,
-      chain: this.config.name,
-      fromBlock: startBlock,
-      toBlock: latestBlock,
-    });
-
-    while (startBlock <= latestBlock) {
-      this.execute.startSessionMuted();
-      const blockData = await this.getBlockData(startBlock);
-      if (blockData) {
-        await this.storages.database.update({
-          collection: EnvConfig.mongodb.collections.rawdataBlockData.name,
-          keys: {
-            chain: this.config.name,
-            number: blockData.number,
-          },
-          updates: {
-            ...blockData,
-          },
-          upsert: true,
-        });
-
-        if (!options.force) {
-          await this.storages.database.update({
-            collection: EnvConfig.mongodb.collections.cachingStates.name,
-            keys: {
-              name: syncStateKey,
-            },
-            updates: {
-              name: syncStateKey,
-              blockNumber: startBlock,
-            },
-            upsert: true,
-          });
-        }
-
-        this.execute.endSession('updated block data', {
-          service: this.name,
-          chain: this.config.name,
-          number: blockData.number,
-          age: formatTime(blockData.timestamp),
-        });
-      } else {
-        logger.error('failed to get block data from all rpcs', {
-          service: this.name,
-          chain: this.config.name,
-          number: startBlock,
-        });
-        process.exit(0);
-      }
-
-      startBlock += 1;
-    }
-  }
-
-  public async run(options: RunCollectorOptions): Promise<void> {
-    await this.runCollector(options);
   }
 }

@@ -37,6 +37,8 @@ export interface DatabaseCollectionConfig {
   cachingStates: MongoCollectionConfig;
 
   rawdataBlockData: MongoCollectionConfig;
+  chainDataStates: MongoCollectionConfig;
+  chainDataSnapshots: MongoCollectionConfig;
 }
 
 export interface EnvConfig {

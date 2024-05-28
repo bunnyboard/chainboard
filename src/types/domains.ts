@@ -7,7 +7,7 @@ export interface ContractLogBasic {
 
 export interface DataValue {
   value: number;
-  changedDay: number;
+  changedDay?: number;
 }
 
 export interface BlockData {
@@ -63,9 +63,10 @@ export interface ChainData {
 
   blocks: DataValue;
   transactions: DataValue;
-  addresses: DataValue;
+  fromAddresses: DataValue;
+  toAddresses: DataValue;
 
   totalCoinTransfer: DataValue;
 
-  deployedContracts?: DataValue;
+  deployedContracts: DataValue;
 }

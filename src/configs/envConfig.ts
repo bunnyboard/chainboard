@@ -45,6 +45,24 @@ const envConfig: EnvConfig = {
           },
         ],
       },
+
+      chainDataStates: {
+        name: 'chainDataStates',
+        indies: [
+          {
+            chain: 1,
+          },
+        ],
+      },
+      chainDataSnapshots: {
+        name: 'chainDataSnapshots',
+        indies: [
+          {
+            chain: 1,
+            timestamp: 1,
+          },
+        ],
+      },
     },
   },
   blockchains: rawConfigs.blockchains,

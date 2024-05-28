@@ -1,7 +1,7 @@
 import { DefaultServiceInterval } from '../configs';
 import EnvConfig from '../configs/envConfig';
 import { sleep } from '../lib/utils';
-import EvmChainAdapter from '../modules/adapters/evm';
+import EvmChainAdapter from '../modules/evm';
 import { ChainFamilies } from '../types/configs';
 import { ContextStorages } from '../types/namespaces';
 import { BasicCommand } from './basic';

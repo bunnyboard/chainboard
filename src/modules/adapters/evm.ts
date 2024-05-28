@@ -4,8 +4,9 @@ import { getBlock, getBlockNumber } from 'viem/actions';
 
 import EnvConfig from '../../configs/envConfig';
 import logger from '../../lib/logger';
-import { normalizeAddress, sleep } from '../../lib/utils';
-import { Blockchain } from '../../types/configs';
+import { formatTime, normalizeAddress, sleep } from '../../lib/utils';
+import ExecuteSession from '../../services/execute';
+import { Blockchain, ChainFamilies } from '../../types/configs';
 import { BlockData } from '../../types/domains';
 import { ContextStorages, IChainAdapter } from '../../types/namespaces';
 import { RunCollectorOptions } from '../../types/options';
@@ -15,9 +16,13 @@ export default class EvmChainAdapter implements IChainAdapter {
   public readonly config: Blockchain;
   public readonly storages: ContextStorages;
 
+  private execute: ExecuteSession;
+
   constructor(storages: ContextStorages, config: Blockchain) {
     this.storages = storages;
     this.config = config;
+
+    this.execute = new ExecuteSession();
   }
 
   private getPublicClient(nodeRpc: string): PublicClient {
@@ -53,6 +58,10 @@ export default class EvmChainAdapter implements IChainAdapter {
   }
 
   public async getBlockData(blockNumber: number): Promise<BlockData | null> {
+    if (this.config.family !== ChainFamilies.evm) {
+      return null;
+    }
+
     for (const nodeRpc of this.config.nodeRpcs) {
       const client = this.getPublicClient(nodeRpc);
       const rawBlock = await getBlock(client, {
@@ -67,6 +76,7 @@ export default class EvmChainAdapter implements IChainAdapter {
       if (rawBlock) {
         const blockData: BlockData = {
           chain: this.config.name,
+          family: this.config.family,
           number: Number(rawBlock.number),
           timestamp: Number(rawBlock.timestamp),
 
@@ -74,21 +84,23 @@ export default class EvmChainAdapter implements IChainAdapter {
           gasLimit: Number(rawBlock.gasLimit),
 
           totalCoinTransfer: '0',
-          totalCoinBurnt: '0',
+
+          // eip 1559
+          totalCoinBurnt: this.config.eip1559 ? '0' : undefined,
 
           deployedContracts: 0,
+
           transactions: rawBlock.transactions.length,
 
-          addresses: [],
-          withdrawRecipients: [],
+          fromAddresses: [],
+          toAddresses: [],
 
           contractLogs: [],
         };
 
+        const fromAddresses: any = {};
+        const toAddresses: any = {};
         const transactionDeployContracts: any = {};
-
-        const addressSenders: any = {};
-        const addressWithdrawRecipients: any = {};
 
         for (const transaction of rawBlock.transactions) {
           if (transaction.gasPrice && transaction.gasPrice === 0n) {
@@ -96,8 +108,11 @@ export default class EvmChainAdapter implements IChainAdapter {
             continue;
           }
 
-          // count unique sender addresses
-          addressSenders[normalizeAddress(transaction.from)] = true;
+          // count unique addresses
+          fromAddresses[normalizeAddress(transaction.from)] = true;
+          if (transaction.to) {
+            toAddresses[normalizeAddress(transaction.to)] = true;
+          }
 
           if (!transaction.to && transaction.input !== '0x0' && (transaction.input as string) !== '') {
             transactionDeployContracts[transaction.hash] = true;
@@ -109,22 +124,9 @@ export default class EvmChainAdapter implements IChainAdapter {
             .toString(10);
         }
 
-        if (this.config.name === 'ethereum') {
-          blockData.totalCoinWithdrawn = '0';
-          if (rawBlock.withdrawals) {
-            for (const withdrawal of rawBlock.withdrawals) {
-              blockData.totalCoinWithdrawn = new BigNumber(blockData.totalCoinWithdrawn)
-                .plus(new BigNumber(withdrawal.amount, 16).dividedBy(1e9))
-                .toString(10);
-
-              addressWithdrawRecipients[normalizeAddress(withdrawal.address)] = true;
-            }
-          }
-        }
-
-        // count coin were burnt if any
+        // count coin were burnt if any, EIP-1559
         // coin burnt = baseFeePerGas * gasUsed
-        if (rawBlock.baseFeePerGas) {
+        if (rawBlock.baseFeePerGas && blockData.totalCoinBurnt && this.config.eip1559) {
           blockData.totalCoinBurnt = new BigNumber(blockData.totalCoinBurnt)
             .plus(
               new BigNumber(rawBlock.baseFeePerGas.toString())
@@ -136,8 +138,8 @@ export default class EvmChainAdapter implements IChainAdapter {
 
         blockData.deployedContracts = Object.keys(transactionDeployContracts).length;
 
-        blockData.addresses = Object.keys(addressSenders);
-        blockData.withdrawRecipients = Object.keys(addressWithdrawRecipients);
+        blockData.fromAddresses = Object.keys(fromAddresses);
+        blockData.toAddresses = Object.keys(toAddresses);
 
         blockData.contractLogs = logs.map((item) => {
           return {
@@ -161,7 +163,7 @@ export default class EvmChainAdapter implements IChainAdapter {
     return null;
   }
 
-  public async run(options: RunCollectorOptions): Promise<void> {
+  private async runCollector(options: RunCollectorOptions): Promise<void> {
     const latestBlock = await this.getBlockNumber();
 
     let startBlock = options.fromBlock ? options.fromBlock : this.config.startBlock;
@@ -187,6 +189,7 @@ export default class EvmChainAdapter implements IChainAdapter {
     });
 
     while (startBlock <= latestBlock) {
+      this.execute.startSessionMuted();
       const blockData = await this.getBlockData(startBlock);
       if (blockData) {
         await this.storages.database.update({
@@ -215,11 +218,11 @@ export default class EvmChainAdapter implements IChainAdapter {
           });
         }
 
-        logger.info('updated block data', {
+        this.execute.endSession('updated block data', {
           service: this.name,
           chain: this.config.name,
           number: blockData.number,
-          age: new Date(blockData.timestamp * 1000).toISOString(),
+          age: formatTime(blockData.timestamp),
         });
       } else {
         logger.error('failed to get block data from all rpcs', {
@@ -232,5 +235,9 @@ export default class EvmChainAdapter implements IChainAdapter {
 
       startBlock += 1;
     }
+  }
+
+  public async run(options: RunCollectorOptions): Promise<void> {
+    await this.runCollector(options);
   }
 }

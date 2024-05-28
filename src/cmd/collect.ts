@@ -1,7 +1,8 @@
 import { DefaultServiceInterval } from '../configs';
 import EnvConfig from '../configs/envConfig';
 import { sleep } from '../lib/utils';
-import getAdapter from '../modules';
+import EvmChainAdapter from '../modules/adapters/evm';
+import { ChainFamilies } from '../types/configs';
 import { ContextStorages } from '../types/namespaces';
 import { BasicCommand } from './basic';
 
@@ -26,8 +27,9 @@ export class CollectCommand extends BasicCommand {
 
     do {
       for (const chain of chains) {
-        const adapter = getAdapter(storages, chain);
-        if (adapter) {
+        const config = EnvConfig.blockchains[chain];
+        if (config.family === ChainFamilies.evm) {
+          const adapter = new EvmChainAdapter(storages, EnvConfig.blockchains[chain]);
           await adapter.run({
             fromBlock: argv.fromBlock ? Number(argv.fromBlock) : undefined,
             force: argv.force ? argv.force : undefined,

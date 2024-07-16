@@ -116,7 +116,6 @@ export default class EvmChainAdapter extends ChainAdapter {
           service: this.name,
           chain: this.chainConfig.name,
           rpc: nodeRpc,
-          error: e.message,
         });
         await sleep(1);
       }

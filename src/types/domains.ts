@@ -1,16 +1,11 @@
 import { ChainFamily } from './configs';
 
-export interface ContractLogBasic {
-  address: string;
+export interface EventLogBasic {
+  contract: string;
   signature: string;
 }
 
-export interface DataValue {
-  value: number;
-  changedDay?: number;
-}
-
-export interface BlockData {
+export interface RawdataBlock {
   // chain name
   chain: string;
 
@@ -27,46 +22,19 @@ export interface BlockData {
   // simply count tx.value
   totalCoinTransfer: string;
 
-  // list of contract logs
-  contractLogs: Array<ContractLogBasic>;
-
   // total number of transactions were transact in all blocks
   transactions: number;
-
-  // address trigger to send the transaction
-  fromAddresses: Array<string>;
-
-  // address called to or contract
-  toAddresses: Array<string>;
-
-  // === EVM === //
-  // for Ethereum EIP-1559
-  // number of ETH were burnt
-  totalCoinBurnt?: string;
-
-  // new contract were deployed
-  // we detect a new contract deployed with:
-  // - tx.to is null (omitted)
-  // - tx.data is not empty
-  deployedContracts?: number;
 
   // gas on evm
   gasUsed?: number;
   gasLimit?: number;
-}
 
-export interface ChainData {
-  chain: string;
-  family: ChainFamily;
+  // total native coins were burnt if any
+  totalCoinBurnt?: string;
 
-  timestamp: number; // timestamp where data were updated
+  // address trigger to send the transaction
+  senderAddresses: Array<string>;
 
-  blocks: DataValue;
-  transactions: DataValue;
-  fromAddresses: DataValue;
-  toAddresses: DataValue;
-
-  totalCoinTransfer: DataValue;
-
-  deployedContracts: DataValue;
+  // list of contract logs
+  eventLogs: Array<EventLogBasic>;
 }

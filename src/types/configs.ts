@@ -11,34 +11,20 @@ export interface Blockchain {
   // ex: ethereum
   name: string;
 
-  chainId: number;
-
   // default: evm, more coming soon
   family: ChainFamily;
 
-  // the chain support EIP-1559
-  // https://consensys.io/blog/what-is-eip-1559-how-will-it-change-ethereum
-  eip1559?: boolean;
-
   // start collect data from block number
   startBlock: number;
-
-  // the native coin
-  nativeCoin: {
-    symbol: string;
-    decimals: number;
-  };
 
   // list of node rpcs
   nodeRpcs: Array<string>;
 }
 
 export interface DatabaseCollectionConfig {
-  cachingStates: MongoCollectionConfig;
+  cachingData: MongoCollectionConfig;
 
-  rawdataBlockData: MongoCollectionConfig;
-  chainDataStates: MongoCollectionConfig;
-  chainDataSnapshots: MongoCollectionConfig;
+  rawdataBlocks: MongoCollectionConfig;
 }
 
 export interface EnvConfig {

@@ -5,6 +5,7 @@ import EvmChainAdapter from '../modules/evm';
 import { ChainFamilies } from '../types/configs';
 import { ContextStorages } from '../types/namespaces';
 import { BasicCommand } from './basic';
+import { verifyConfigs } from './configs';
 
 export class CollectCommand extends BasicCommand {
   public readonly name: string = 'collect';
@@ -15,6 +16,8 @@ export class CollectCommand extends BasicCommand {
   }
 
   public async execute(argv: any) {
+    verifyConfigs();
+
     const storages: ContextStorages = await super.getStorages();
 
     const chains = argv.chain.split(',');

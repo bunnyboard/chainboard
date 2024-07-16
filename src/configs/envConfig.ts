@@ -1,20 +1,21 @@
 import fs from 'fs';
+import tomlJson from 'toml-json';
 
 import { EnvConfig } from '../types/configs';
 
-const configPath = './configs.json';
+const configPath = './configs.toml';
 
 let rawConfigs: any = null;
 if (fs.existsSync(configPath)) {
   try {
-    rawConfigs = JSON.parse(fs.readFileSync(configPath).toString());
+    rawConfigs = tomlJson({ fileUrl: configPath });
   } catch (e: any) {
     rawConfigs = null;
   }
 }
 
 if (!rawConfigs) {
-  console.log('Missing configs.json file. Check configs.example.json for more details!');
+  console.log('Missing configs.json file. Check configs.example.toml for more details!');
   process.exit(0);
 }
 
@@ -23,8 +24,8 @@ const envConfig: EnvConfig = {
     connectionUri: rawConfigs.database.connectionUri,
     databaseName: rawConfigs.database.databaseName,
     collections: {
-      cachingStates: {
-        name: 'cachingStates',
+      cachingData: {
+        name: 'cachingData',
         indies: [
           {
             name: 1,
@@ -32,31 +33,13 @@ const envConfig: EnvConfig = {
         ],
       },
 
-      rawdataBlockData: {
-        name: 'rawdataBlockData',
+      rawdataBlocks: {
+        name: 'rawdataBlocks',
         indies: [
           {
             chain: 1,
             number: 1,
           },
-          {
-            chain: 1,
-            timestamp: 1,
-          },
-        ],
-      },
-
-      chainDataStates: {
-        name: 'chainDataStates',
-        indies: [
-          {
-            chain: 1,
-          },
-        ],
-      },
-      chainDataSnapshots: {
-        name: 'chainDataSnapshots',
-        indies: [
           {
             chain: 1,
             timestamp: 1,

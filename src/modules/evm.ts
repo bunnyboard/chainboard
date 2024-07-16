@@ -5,9 +5,9 @@ import { getBlock, getBlockNumber } from 'viem/actions';
 import logger from '../lib/logger';
 import { normalizeAddress, sleep } from '../lib/utils';
 import { Blockchain, ChainFamilies } from '../types/configs';
-import { BlockData } from '../types/domains';
-import { ContextStorages } from '../types/namespaces';
 import ChainAdapter from './chain';
+import { RawdataBlock } from '../types/domains';
+import { ContextStorages } from '../types/namespaces';
 
 export default class EvmChainAdapter extends ChainAdapter {
   public readonly name: string = 'chain.evm';
@@ -27,7 +27,7 @@ export default class EvmChainAdapter extends ChainAdapter {
     });
   }
 
-  public async getBlockNumber(): Promise<number> {
+  public async getLatestBlockNumber(): Promise<number> {
     for (const nodeRpc of this.chainConfig.nodeRpcs) {
       const client = this.getPublicClient(nodeRpc);
       const blockNumber = await getBlockNumber(client);
@@ -48,7 +48,7 @@ export default class EvmChainAdapter extends ChainAdapter {
     return 0;
   }
 
-  public async getBlockData(blockNumber: number): Promise<BlockData | null> {
+  public async getBlockData(blockNumber: number): Promise<RawdataBlock | null> {
     if (this.chainConfig.family !== ChainFamilies.evm) {
       return null;
     }
@@ -66,7 +66,7 @@ export default class EvmChainAdapter extends ChainAdapter {
         });
 
         if (rawBlock) {
-          const blockData: BlockData = {
+          const blockData: RawdataBlock = {
             chain: this.chainConfig.name,
             family: this.chainConfig.family,
             number: Number(rawBlock.number),
@@ -76,39 +76,24 @@ export default class EvmChainAdapter extends ChainAdapter {
             gasLimit: Number(rawBlock.gasLimit),
 
             totalCoinTransfer: '0',
-
-            // eip 1559
-            totalCoinBurnt: this.chainConfig.eip1559 ? '0' : undefined,
-
-            deployedContracts: 0,
+            totalCoinBurnt: '0',
 
             transactions: rawBlock.transactions.length,
 
-            fromAddresses: [],
-            toAddresses: [],
+            senderAddresses: [],
 
-            contractLogs: [],
+            eventLogs: [],
           };
 
-          const fromAddresses: any = {};
-          const toAddresses: any = {};
-          const transactionDeployContracts: any = {};
-
+          const senderAddresses: any = {};
           for (const transaction of rawBlock.transactions) {
             if (transaction.gasPrice && transaction.gasPrice === 0n) {
-              // ignore, layer 2 system transaction
+              // ignore, EVM layer 2 system transaction
               continue;
             }
 
             // count unique addresses
-            fromAddresses[normalizeAddress(transaction.from)] = true;
-            if (transaction.to) {
-              toAddresses[normalizeAddress(transaction.to)] = true;
-            }
-
-            if (!transaction.to && transaction.input !== '0x0' && (transaction.input as string) !== '') {
-              transactionDeployContracts[transaction.hash] = true;
-            }
+            senderAddresses[normalizeAddress(transaction.from)] = true;
 
             // count coin volume transfer
             blockData.totalCoinTransfer = new BigNumber(blockData.totalCoinTransfer)
@@ -118,7 +103,7 @@ export default class EvmChainAdapter extends ChainAdapter {
 
           // count coin were burnt if any, EIP-1559
           // coin burnt = baseFeePerGas * gasUsed
-          if (rawBlock.baseFeePerGas && blockData.totalCoinBurnt && this.chainConfig.eip1559) {
+          if (rawBlock.baseFeePerGas && blockData.totalCoinBurnt) {
             blockData.totalCoinBurnt = new BigNumber(blockData.totalCoinBurnt)
               .plus(
                 new BigNumber(rawBlock.baseFeePerGas.toString())
@@ -128,14 +113,11 @@ export default class EvmChainAdapter extends ChainAdapter {
               .toString(10);
           }
 
-          blockData.deployedContracts = Object.keys(transactionDeployContracts).length;
+          blockData.senderAddresses = Object.keys(senderAddresses);
 
-          blockData.fromAddresses = Object.keys(fromAddresses);
-          blockData.toAddresses = Object.keys(toAddresses);
-
-          blockData.contractLogs = logs.map((item) => {
+          blockData.eventLogs = logs.map((item) => {
             return {
-              address: normalizeAddress(item.address),
+              contract: normalizeAddress(item.address),
               signature: item.topics[0] ? item.topics[0] : '',
             };
           });

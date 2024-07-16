@@ -1,0 +1,18 @@
+title = "ChainBoard Configs - Example Full"
+
+[database]
+connectionUri = ""
+databaseName = ""
+
+[blockchains]
+[blockchains.ethereum]
+name = "ethereum"
+family = "evm"
+startBlock = 18895915
+nodeRpcs = ["https://eth.llamarpc.com", "https://eth-pokt.nodies.app"]
+
+[blockchains.polygon]
+name = "polygon"
+family = "evm"
+startBlock = 0 # auto sync from recently 100 blocks
+nodeRpcs = ["https://polygon-pokt.nodies.app", "https://rpc.ankr.com/polygon"]

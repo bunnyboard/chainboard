@@ -1,9 +1,10 @@
+import envConfig from '../configs/envConfig';
 import EnvConfig from '../configs/envConfig';
 import logger from '../lib/logger';
-import { formatTime, getTimestamp } from '../lib/utils';
+import { formatTime } from '../lib/utils';
 import ExecuteSession from '../services/execute';
 import { Blockchain } from '../types/configs';
-import { BlockData, ChainData } from '../types/domains';
+import { RawdataBlock } from '../types/domains';
 import { ContextStorages, IChainAdapter } from '../types/namespaces';
 import { RunCollectorOptions } from '../types/options';
 
@@ -21,33 +22,43 @@ export default class ChainAdapter implements IChainAdapter {
     this.execute = new ExecuteSession();
   }
 
-  public async getBlockNumber(): Promise<number> {
+  public async getLatestBlockNumber(): Promise<number> {
     return 0;
   }
 
-  public async getBlockData(blockNumber: number): Promise<BlockData | null> {
+  public async getBlockData(blockNumber: number): Promise<RawdataBlock | null> {
     return null;
   }
 
   protected async runCollector(options: RunCollectorOptions): Promise<void> {
-    const latestBlock = await this.getBlockNumber();
+    const latestBlock = await this.getLatestBlockNumber();
 
     let startBlock = options.fromBlock ? options.fromBlock : this.chainConfig.startBlock;
 
-    const syncStateKey = `collecting-block-data-${this.chainConfig.name}`;
+    // sync from recently 100 blocks
+    if (startBlock === 0) {
+      startBlock = latestBlock - 100;
+    }
+
+    // we find the latest block number from database
     if (!options.force) {
-      const state = await this.storages.database.find({
-        collection: EnvConfig.mongodb.collections.cachingStates.name,
+      const latestBlockFromDb = await this.storages.database.find({
+        collection: envConfig.mongodb.collections.rawdataBlocks.name,
         query: {
-          name: syncStateKey,
+          chain: this.chainConfig.name,
+        },
+        options: {
+          limit: 1,
+          skip: 0,
+          order: { number: -1 },
         },
       });
-      if (state) {
-        startBlock = state.blockNumber;
+      if (latestBlockFromDb) {
+        startBlock = latestBlockFromDb.number;
       }
     }
 
-    logger.info('start to update block data', {
+    logger.info('start to update raw block data', {
       service: this.name,
       chain: this.chainConfig.name,
       fromBlock: startBlock,
@@ -60,7 +71,7 @@ export default class ChainAdapter implements IChainAdapter {
       const blockData = await this.getBlockData(startBlock);
       if (blockData) {
         await this.storages.database.update({
-          collection: EnvConfig.mongodb.collections.rawdataBlockData.name,
+          collection: EnvConfig.mongodb.collections.rawdataBlocks.name,
           keys: {
             chain: this.chainConfig.name,
             number: blockData.number,
@@ -71,21 +82,7 @@ export default class ChainAdapter implements IChainAdapter {
           upsert: true,
         });
 
-        if (!options.force) {
-          await this.storages.database.update({
-            collection: EnvConfig.mongodb.collections.cachingStates.name,
-            keys: {
-              name: syncStateKey,
-            },
-            updates: {
-              name: syncStateKey,
-              blockNumber: startBlock,
-            },
-            upsert: true,
-          });
-        }
-
-        this.execute.endSession('updated block data', {
+        this.execute.endSession('updated raw block data', {
           service: this.name,
           chain: this.chainConfig.name,
           number: blockData.number,
@@ -105,91 +102,7 @@ export default class ChainAdapter implements IChainAdapter {
     }
   }
 
-  protected async aggregateData(options: RunCollectorOptions): Promise<void> {
-    logger.info('start to aggregate chain data', {
-      service: this.name,
-      chain: this.chainConfig.name,
-    });
-
-    // update state
-
-    this.execute.startSessionMuted();
-    const currentTimestamp = getTimestamp();
-    const last24HoursTimestamp = currentTimestamp - 24 * 60 * 60;
-
-    const rawBlocks = await this.storages.database.query({
-      collection: EnvConfig.mongodb.collections.rawdataBlockData.name,
-      query: {
-        chain: this.chainConfig.name,
-        timestamp: {
-          $gte: last24HoursTimestamp,
-          $lte: currentTimestamp,
-        },
-      },
-    });
-
-    const chainDataCurrent: ChainData = {
-      chain: this.chainConfig.name,
-      family: this.chainConfig.family,
-      timestamp: currentTimestamp,
-      blocks: {
-        value: rawBlocks.length,
-      },
-      transactions: {
-        value: 0,
-      },
-      fromAddresses: {
-        value: 0,
-      },
-      toAddresses: {
-        value: 0,
-      },
-      totalCoinTransfer: {
-        value: 0,
-      },
-      deployedContracts: {
-        value: 0,
-      },
-    };
-
-    const fromAddresses: any = {};
-    const toAddresses: any = {};
-    for (const block of rawBlocks) {
-      chainDataCurrent.transactions.value += block.transactions;
-      chainDataCurrent.totalCoinTransfer.value += Number(block.totalCoinTransfer);
-
-      if (block.deployedContracts) {
-        chainDataCurrent.deployedContracts.value += block.deployedContracts;
-      }
-
-      fromAddresses[block.fromAddresses] = true;
-      toAddresses[block.toAddresses] = true;
-    }
-
-    chainDataCurrent.fromAddresses.value = Object.keys(fromAddresses).length;
-    chainDataCurrent.toAddresses.value = Object.keys(toAddresses).length;
-
-    await this.storages.database.update({
-      collection: EnvConfig.mongodb.collections.chainDataStates.name,
-      keys: {
-        chain: this.chainConfig.name,
-      },
-      updates: {
-        ...chainDataCurrent,
-      },
-      upsert: true,
-    });
-
-    this.execute.startSession('updated chain data state', {
-      service: this.name,
-      chain: this.chainConfig.name,
-      blocks: chainDataCurrent.blocks.value,
-      txns: chainDataCurrent.transactions.value,
-    });
-  }
-
   public async run(options: RunCollectorOptions): Promise<void> {
     await this.runCollector(options);
-    await this.aggregateData(options);
   }
 }

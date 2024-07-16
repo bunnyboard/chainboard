@@ -76,7 +76,6 @@ export default class EvmChainAdapter extends ChainAdapter {
             gasLimit: Number(rawBlock.gasLimit),
 
             totalCoinTransfer: '0',
-            totalCoinBurnt: '0',
 
             transactions: rawBlock.transactions.length,
 
@@ -98,18 +97,6 @@ export default class EvmChainAdapter extends ChainAdapter {
             // count coin volume transfer
             blockData.totalCoinTransfer = new BigNumber(blockData.totalCoinTransfer)
               .plus(new BigNumber(transaction.value.toString()).dividedBy(1e18))
-              .toString(10);
-          }
-
-          // count coin were burnt if any, EIP-1559
-          // coin burnt = baseFeePerGas * gasUsed
-          if (rawBlock.baseFeePerGas && blockData.totalCoinBurnt) {
-            blockData.totalCoinBurnt = new BigNumber(blockData.totalCoinBurnt)
-              .plus(
-                new BigNumber(rawBlock.baseFeePerGas.toString())
-                  .multipliedBy(rawBlock.gasUsed.toString())
-                  .dividedBy(1e18),
-              )
               .toString(10);
           }
 

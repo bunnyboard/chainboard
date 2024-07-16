@@ -29,9 +29,6 @@ export interface RawdataBlock {
   gasUsed?: number;
   gasLimit?: number;
 
-  // total native coins were burnt if any
-  totalCoinBurnt?: string;
-
   // address trigger to send the transaction
   senderAddresses: Array<string>;
 

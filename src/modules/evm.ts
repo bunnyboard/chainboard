@@ -3,7 +3,7 @@ import { PublicClient, createPublicClient, http } from 'viem';
 import { getBlock, getBlockNumber } from 'viem/actions';
 
 import logger from '../lib/logger';
-import { normalizeAddress, sleep } from '../lib/utils';
+import { normalizeAddress } from '../lib/utils';
 import { Blockchain, ChainFamilies } from '../types/configs';
 import ChainAdapter from './chain';
 import { RawdataBlock } from '../types/domains';
@@ -41,8 +41,6 @@ export default class EvmChainAdapter extends ChainAdapter {
         chain: this.chainConfig.name,
         rpc: nodeRpc,
       });
-
-      await sleep(1);
     }
 
     return 0;
@@ -117,7 +115,6 @@ export default class EvmChainAdapter extends ChainAdapter {
           chain: this.chainConfig.name,
           rpc: nodeRpc,
         });
-        await sleep(1);
       }
     }
 

@@ -58,28 +58,24 @@ export default class EvmChainAdapter extends ChainAdapter {
           blockNumber: BigInt(blockNumber),
           includeTransactions: true,
         });
-        const logs = await client.getLogs({
-          fromBlock: BigInt(blockNumber),
-          toBlock: BigInt(blockNumber),
-        });
 
         if (rawBlock) {
           const blockData: RawdataBlock = {
             chain: this.chainConfig.name,
             family: this.chainConfig.family,
             number: Number(rawBlock.number),
+            size: Number(rawBlock.size),
             timestamp: Number(rawBlock.timestamp),
 
-            gasUsed: Number(rawBlock.gasUsed),
-            gasLimit: Number(rawBlock.gasLimit),
-
             totalCoinTransfer: '0',
+            totalBaseFees: '0',
 
             transactions: rawBlock.transactions.length,
 
-            senderAddresses: [],
+            gasLimit: Number(rawBlock.gasLimit),
+            gasUsed: Number(rawBlock.gasUsed),
 
-            eventLogs: [],
+            senderAddresses: [],
           };
 
           const senderAddresses: any = {};
@@ -98,14 +94,23 @@ export default class EvmChainAdapter extends ChainAdapter {
               .toString(10);
           }
 
-          blockData.senderAddresses = Object.keys(senderAddresses);
+          if (rawBlock.withdrawals) {
+            blockData.totalCoinWithdrawn = '0';
+            for (const withdrawal of rawBlock.withdrawals) {
+              blockData.totalCoinWithdrawn = new BigNumber(blockData.totalCoinWithdrawn)
+                .plus(new BigNumber(withdrawal.amount.toString(), 16).dividedBy(1e9))
+                .toString(10);
+            }
+          }
 
-          blockData.eventLogs = logs.map((item) => {
-            return {
-              contract: normalizeAddress(item.address),
-              signature: item.topics[0] ? item.topics[0] : '',
-            };
-          });
+          if (rawBlock.baseFeePerGas) {
+            blockData.totalBaseFees = new BigNumber(rawBlock.baseFeePerGas.toString())
+              .multipliedBy(new BigNumber(rawBlock.gasUsed.toString()))
+              .dividedBy(1e18)
+              .toString(10);
+          }
+
+          blockData.senderAddresses = Object.keys(senderAddresses);
 
           return blockData;
         }

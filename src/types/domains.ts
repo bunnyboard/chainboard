@@ -15,6 +15,9 @@ export interface RawdataBlock {
   // block number
   number: number;
 
+  // size in bytes
+  size?: number;
+
   // unix timestamp
   timestamp: number;
 
@@ -22,22 +25,19 @@ export interface RawdataBlock {
   // simply count tx.value
   totalCoinTransfer: string;
 
-  // total transaction fees were paid
-  totalFeesPaid?: string;
+  // total base fees
+  totalBaseFees: string;
 
-  // total reward paid to miner/validator
-  totalRewardPaid?: string;
+  // eth2 ETH withdrawal
+  totalCoinWithdrawn?: string;
 
   // total number of transactions were transact in all blocks
   transactions: number;
 
-  // gas on evm
-  gasUsed?: number;
+  // gas on evm or compute on solana
   gasLimit?: number;
+  gasUsed?: number;
 
   // address trigger to send the transaction
   senderAddresses: Array<string>;
-
-  // list of contract logs
-  eventLogs: Array<EventLogBasic>;
 }

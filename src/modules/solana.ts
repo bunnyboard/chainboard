@@ -5,6 +5,7 @@ import { ContextStorages } from '../types/namespaces';
 import axios from 'axios';
 import { RawdataBlock } from '../types/domains';
 import BigNumber from 'bignumber.js';
+import { SolanaBlockComputeUnits } from '../configs/constants';
 
 export default class SolanaChainAdapter extends ChainAdapter {
   public readonly name: string = 'chain.solana';
@@ -72,18 +73,23 @@ export default class SolanaChainAdapter extends ChainAdapter {
           timestamp: Number(response.result.blockTime),
 
           totalCoinTransfer: '0',
-          totalFeesPaid: '0',
-          totalRewardPaid: '0',
+          totalBaseFees: '0',
+
+          gasLimit: SolanaBlockComputeUnits,
+          gasUsed: 0,
 
           transactions: response.result.transactions.length,
 
           senderAddresses: [],
-
-          eventLogs: [],
         };
 
         const senderAddresses: { [key: string]: boolean } = {};
         for (const transaction of response.result.transactions) {
+          if (blockData.gasUsed !== undefined) {
+            // https://github.com/solana-developers/cu_optimizations
+            blockData.gasUsed += Number(transaction.meta.computeUnitsConsumed);
+          }
+
           const signer = transaction.transaction.message.accountKeys[0];
           senderAddresses[signer] = true;
 
@@ -97,17 +103,9 @@ export default class SolanaChainAdapter extends ChainAdapter {
             }
           }
 
-          if (blockData.totalFeesPaid) {
-            blockData.totalFeesPaid = new BigNumber(blockData.totalFeesPaid)
+          if (blockData.totalBaseFees) {
+            blockData.totalBaseFees = new BigNumber(blockData.totalBaseFees)
               .plus(new BigNumber(transaction.meta.fee.toString()).dividedBy(1e8))
-              .toString(10);
-          }
-        }
-
-        if (blockData.totalRewardPaid) {
-          for (const reward of response.result.rewards) {
-            blockData.totalRewardPaid = new BigNumber(blockData.totalRewardPaid)
-              .plus(new BigNumber(reward.lamports.toString()).dividedBy(1e8))
               .toString(10);
           }
         }

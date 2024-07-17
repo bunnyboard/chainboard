@@ -3,7 +3,7 @@ import EnvConfig from '../configs/envConfig';
 import logger from '../lib/logger';
 import { formatTime } from '../lib/utils';
 import ExecuteSession from '../services/execute';
-import { Blockchain } from '../types/configs';
+import { Blockchain, ChainFamilies } from '../types/configs';
 import { RawdataBlock } from '../types/domains';
 import { ContextStorages, IChainAdapter } from '../types/namespaces';
 import { RunCollectorOptions } from '../types/options';
@@ -90,12 +90,21 @@ export default class ChainAdapter implements IChainAdapter {
           txns: blockData.transactions,
         });
       } else {
-        logger.error('failed to get block data from all rpcs', {
-          service: this.name,
-          chain: this.chainConfig.name,
-          number: startBlock,
-        });
-        process.exit(0);
+        if (this.chainConfig.family === ChainFamilies.solana) {
+          // ignore missing blocks on solana
+          logger.warn('failed to get block data from all rpcs, skipped', {
+            service: this.name,
+            chain: this.chainConfig.name,
+            number: startBlock,
+          });
+        } else {
+          logger.error('failed to get block data from all rpcs', {
+            service: this.name,
+            chain: this.chainConfig.name,
+            number: startBlock,
+          });
+          process.exit(0);
+        }
       }
 
       startBlock += 1;

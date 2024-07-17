@@ -22,6 +22,12 @@ export interface RawdataBlock {
   // simply count tx.value
   totalCoinTransfer: string;
 
+  // total transaction fees were paid
+  totalFeesPaid?: string;
+
+  // total reward paid to miner/validator
+  totalRewardPaid?: string;
+
   // total number of transactions were transact in all blocks
   transactions: number;
 

@@ -2,6 +2,7 @@ import { DefaultServiceInterval } from '../configs';
 import EnvConfig from '../configs/envConfig';
 import { sleep } from '../lib/utils';
 import EvmChainAdapter from '../modules/evm';
+import SolanaChainAdapter from '../modules/solana';
 import { ChainFamilies } from '../types/configs';
 import { ContextStorages } from '../types/namespaces';
 import { BasicCommand } from './basic';
@@ -33,6 +34,12 @@ export class CollectCommand extends BasicCommand {
         const config = EnvConfig.blockchains[chain];
         if (config.family === ChainFamilies.evm) {
           const adapter = new EvmChainAdapter(storages, EnvConfig.blockchains[chain]);
+          await adapter.run({
+            fromBlock: argv.fromBlock ? Number(argv.fromBlock) : undefined,
+            force: argv.force ? argv.force : undefined,
+          });
+        } else if (config.family === ChainFamilies.solana) {
+          const adapter = new SolanaChainAdapter(storages, EnvConfig.blockchains[chain]);
           await adapter.run({
             fromBlock: argv.fromBlock ? Number(argv.fromBlock) : undefined,
             force: argv.force ? argv.force : undefined,

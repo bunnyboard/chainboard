@@ -12,3 +12,6 @@ export const AddressF = '0xffffffffffffffffffffffffffffffffffffffff';
 // Every block on Solana has a blockspace limit of 48 million CUs
 // https://github.com/solana-developers/cu_optimizations
 export const SolanaBlockComputeUnits = 48_000_000;
+
+// https://docs.sui.io/concepts/tokenomics/gas-in-sui#computation
+export const SuiTransactionComputeUnits = 5_000_000;

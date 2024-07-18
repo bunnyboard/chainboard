@@ -5,6 +5,7 @@ import { ContextStorages } from '../types/namespaces';
 import axios from 'axios';
 import { RawdataBlock } from '../types/domains';
 import BigNumber from 'bignumber.js';
+import { SuiTransactionComputeUnits } from '../configs/constants';
 
 export default class SuiChainAdapter extends ChainAdapter {
   public readonly name: string = 'chain.sui';
@@ -67,7 +68,9 @@ export default class SuiChainAdapter extends ChainAdapter {
           totalCoinTransfer: '0',
           totalBaseFees: '0',
 
-          resourceLimit: 0,
+          // https://docs.sui.io/concepts/tokenomics/gas-in-sui#computation
+          // every sui tx has limit of 5,000,000 Computation Units
+          resourceLimit: SuiTransactionComputeUnits * response.result.transactions.length,
           resourceUsed: 0,
 
           transactions: response.result.transactions.length,
@@ -118,11 +121,7 @@ export default class SuiChainAdapter extends ChainAdapter {
               }
             }
 
-            // https://docs.sui.io/concepts/tokenomics/gas-in-sui#computation
-            // resource limit is total bucket of a transaction
-            const budget = Number(transaction.transaction.data.gasData.budget);
-            blockData.resourceLimit += budget;
-            // resource used is transaction computationCost
+            // Computation Units = computationCost / gasPrice
             const gasPrice = Number(transaction.transaction.data.gasData.price);
             blockData.resourceUsed += Math.floor(Number(transaction.effects.gasUsed.computationCost) / gasPrice);
           }

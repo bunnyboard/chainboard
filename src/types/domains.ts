@@ -35,8 +35,8 @@ export interface RawdataBlock {
   transactions: number;
 
   // gas on evm or compute on solana
-  gasLimit?: number;
-  gasUsed?: number;
+  resourceLimit: number;
+  resourceUsed: number;
 
   // address trigger to send the transaction
   senderAddresses: Array<string>;

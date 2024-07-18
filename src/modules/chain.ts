@@ -90,7 +90,7 @@ export default class ChainAdapter implements IChainAdapter {
           txns: blockData.transactions,
         });
       } else {
-        if (this.chainConfig.family === ChainFamilies.solana) {
+        if (this.chainConfig.family === ChainFamilies.solana || this.chainConfig.family === ChainFamilies.sui) {
           // ignore missing blocks on solana
           logger.warn('failed to get block data from all rpcs, skipped', {
             service: this.name,

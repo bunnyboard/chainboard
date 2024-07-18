@@ -75,8 +75,8 @@ export default class SolanaChainAdapter extends ChainAdapter {
           totalCoinTransfer: '0',
           totalBaseFees: '0',
 
-          gasLimit: SolanaBlockComputeUnits,
-          gasUsed: 0,
+          resourceLimit: SolanaBlockComputeUnits,
+          resourceUsed: 0,
 
           transactions: response.result.transactions.length,
 
@@ -85,9 +85,9 @@ export default class SolanaChainAdapter extends ChainAdapter {
 
         const senderAddresses: { [key: string]: boolean } = {};
         for (const transaction of response.result.transactions) {
-          if (blockData.gasUsed !== undefined) {
+          if (blockData.resourceUsed !== undefined) {
             // https://github.com/solana-developers/cu_optimizations
-            blockData.gasUsed += Number(transaction.meta.computeUnitsConsumed);
+            blockData.resourceUsed += Number(transaction.meta.computeUnitsConsumed);
           }
 
           const signer = transaction.transaction.message.accountKeys[0];

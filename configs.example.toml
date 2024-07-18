@@ -22,3 +22,9 @@ name = "solana"
 family = "solana"
 startBlock = 0
 nodeRpcs = ["https://api.devnet.solana.com"]
+
+[blockchains.sui]
+name = "sui"
+family = "sui"
+startBlock = 0
+nodeRpcs = ["https://fullnode.mainnet.sui.io"]

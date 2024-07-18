@@ -3,8 +3,9 @@ import EnvConfig from '../configs/envConfig';
 import { sleep } from '../lib/utils';
 import EvmChainAdapter from '../modules/evm';
 import SolanaChainAdapter from '../modules/solana';
+import SuiChainAdapter from '../modules/sui';
 import { ChainFamilies } from '../types/configs';
-import { ContextStorages } from '../types/namespaces';
+import { ContextStorages, IChainAdapter } from '../types/namespaces';
 import { BasicCommand } from './basic';
 import { verifyConfigs } from './configs';
 
@@ -32,19 +33,26 @@ export class CollectCommand extends BasicCommand {
     do {
       for (const chain of chains) {
         const config = EnvConfig.blockchains[chain];
-        if (config.family === ChainFamilies.evm) {
-          const adapter = new EvmChainAdapter(storages, EnvConfig.blockchains[chain]);
-          await adapter.run({
-            fromBlock: argv.fromBlock ? Number(argv.fromBlock) : undefined,
-            force: argv.force ? argv.force : undefined,
-          });
-        } else if (config.family === ChainFamilies.solana) {
-          const adapter = new SolanaChainAdapter(storages, EnvConfig.blockchains[chain]);
-          await adapter.run({
-            fromBlock: argv.fromBlock ? Number(argv.fromBlock) : undefined,
-            force: argv.force ? argv.force : undefined,
-          });
+
+        let adapter: IChainAdapter;
+        switch (config.family) {
+          case ChainFamilies.solana: {
+            adapter = new SolanaChainAdapter(storages, EnvConfig.blockchains[chain]);
+            break;
+          }
+          case ChainFamilies.sui: {
+            adapter = new SuiChainAdapter(storages, EnvConfig.blockchains[chain]);
+            break;
+          }
+          default: {
+            adapter = new EvmChainAdapter(storages, EnvConfig.blockchains[chain]);
+          }
         }
+
+        await adapter.run({
+          fromBlock: argv.fromBlock ? Number(argv.fromBlock) : undefined,
+          force: argv.force ? argv.force : undefined,
+        });
       }
 
       if (argv.exit) {

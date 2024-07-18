@@ -57,8 +57,8 @@ test('should get block data correctly chain arbitrum', async function () {
     expect(blockData.totalCoinTransfer).equal('0.003130812223826');
     expect(blockData.totalBaseFees).equal('0.00001273156');
     expect(blockData.transactions).equal(8);
-    expect(blockData.gasLimit).equal(1125899906842624);
-    expect(blockData.gasUsed).equal(1273156);
+    expect(blockData.resourceLimit).equal(1125899906842624);
+    expect(blockData.resourceUsed).equal(1273156);
   }
 });
 
@@ -85,7 +85,7 @@ test('should get block data correctly chain solana', async function () {
     expect(blockData.totalCoinTransfer).equal('1730.20364196');
     expect(blockData.totalBaseFees).equal('0.57702702');
     expect(blockData.transactions).equal(1362);
-    expect(blockData.gasLimit).equal(48000000);
-    expect(blockData.gasUsed).equal(35169985);
+    expect(blockData.resourceLimit).equal(48000000);
+    expect(blockData.resourceUsed).equal(35169985);
   }
 });

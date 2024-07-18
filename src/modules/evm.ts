@@ -72,8 +72,8 @@ export default class EvmChainAdapter extends ChainAdapter {
 
             transactions: rawBlock.transactions.length,
 
-            gasLimit: Number(rawBlock.gasLimit),
-            gasUsed: Number(rawBlock.gasUsed),
+            resourceLimit: Number(rawBlock.gasLimit),
+            resourceUsed: Number(rawBlock.gasUsed),
 
             senderAddresses: [],
           };

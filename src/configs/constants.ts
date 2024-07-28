@@ -15,3 +15,6 @@ export const SolanaBlockComputeUnits = 48_000_000;
 
 // https://docs.sui.io/concepts/tokenomics/gas-in-sui#computation
 export const SuiTransactionComputeUnits = 5_000_000;
+
+// https://docs.rs/aptos-global-constants-link/latest/aptos_global_constants_link/constant.MAX_GAS_AMOUNT.html
+export const AptosTransactionMaxGas = 1_000_000;

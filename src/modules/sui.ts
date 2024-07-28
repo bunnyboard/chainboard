@@ -4,7 +4,6 @@ import ChainAdapter from './chain';
 import { ContextStorages } from '../types/namespaces';
 import axios from 'axios';
 import { RawdataBlock } from '../types/domains';
-import BigNumber from 'bignumber.js';
 import { SuiTransactionComputeUnits } from '../configs/constants';
 
 export default class SuiChainAdapter extends ChainAdapter {
@@ -65,19 +64,18 @@ export default class SuiChainAdapter extends ChainAdapter {
           number: blockNumber,
           timestamp: Math.floor(response.result.timestampMs / 1000),
 
-          totalCoinTransfer: '0',
-          totalBaseFees: '0',
-
-          // https://docs.sui.io/concepts/tokenomics/gas-in-sui#computation
-          // every sui tx has limit of 5,000,000 Computation Units
-          resourceLimit: SuiTransactionComputeUnits * response.result.transactions.length,
-          resourceUsed: 0,
+          throughput: {
+            // https://docs.sui.io/concepts/tokenomics/gas-in-sui#computation
+            // every sui tx has limit of 5,000,000 Computation Units
+            resourceLimit: SuiTransactionComputeUnits * response.result.transactions.length,
+            resourceUsed: 0,
+          },
 
           transactions: response.result.transactions.length,
 
           senderAddresses: [],
         };
-
+  
         const transactions = await this.callRpc(nodeRpc, {
           jsonrpc: '2.0',
           id: 0,
@@ -101,35 +99,14 @@ export default class SuiChainAdapter extends ChainAdapter {
               senderAddresses[sender] = true;
             }
 
-            if (transaction.effects) {
-              const fees = new BigNumber(transaction.effects.gasUsed.computationCost)
-                .plus(new BigNumber(transaction.effects.gasUsed.storageCost))
-                .minus(new BigNumber(transaction.effects.gasUsed.storageRebate));
-              blockData.totalBaseFees = new BigNumber(blockData.totalBaseFees).plus(fees.dividedBy(1e9)).toString(10);
+            if (blockData.throughput) {
+              // Computation Units = computationCost / gasPrice
+              const gasPrice = Number(transaction.transaction.data.gasData.price);
+              blockData.throughput.resourceUsed += Math.floor(
+                Number(transaction.effects.gasUsed.computationCost) / gasPrice,
+              );
             }
-
-            if (transaction.balanceChanges) {
-              for (const balanceChange of transaction.balanceChanges) {
-                if (balanceChange.coinType === '0x2::sui::SUI') {
-                  const amount = new BigNumber(balanceChange.amount);
-                  if (amount.lt(0)) {
-                    blockData.totalCoinTransfer = new BigNumber(blockData.totalBaseFees)
-                      .plus(amount.abs().dividedBy(1e9))
-                      .toString(10);
-                  }
-                }
-              }
-            }
-
-            // Computation Units = computationCost / gasPrice
-            const gasPrice = Number(transaction.transaction.data.gasData.price);
-            blockData.resourceUsed += Math.floor(Number(transaction.effects.gasUsed.computationCost) / gasPrice);
           }
-
-          // remove amount of SUI paid for transaction fee
-          blockData.totalCoinTransfer = new BigNumber(blockData.totalCoinTransfer)
-            .minus(new BigNumber(blockData.totalBaseFees))
-            .toString(10);
 
           blockData.senderAddresses = Object.keys(senderAddresses);
         }

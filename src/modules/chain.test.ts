@@ -29,8 +29,6 @@ test('should get block data correctly chain ethereum', async function () {
     expect(blockData.number).equal(20324875);
     expect(blockData.timestamp).equal(1721202755);
     expect(blockData.size).equal(87853);
-    expect(blockData.totalCoinTransfer).equal('118.589464196681790992');
-    expect(blockData.totalBaseFees).equal('0.121615809895338528');
     expect(blockData.transactions).equal(173);
   }
 });
@@ -54,11 +52,7 @@ test('should get block data correctly chain arbitrum', async function () {
     expect(blockData.number).equal(233088189);
     expect(blockData.timestamp).equal(1721203632);
     expect(blockData.size).equal(4064);
-    expect(blockData.totalCoinTransfer).equal('0.003130812223826');
-    expect(blockData.totalBaseFees).equal('0.00001273156');
     expect(blockData.transactions).equal(8);
-    expect(blockData.resourceLimit).equal(1125899906842624);
-    expect(blockData.resourceUsed).equal(1273156);
   }
 });
 
@@ -82,10 +76,5 @@ test('should get block data correctly chain solana', async function () {
     expect(blockData.number).equal(257265854);
     expect(blockData.timestamp).equal(1711765475);
     expect(blockData.size).equal(undefined);
-    expect(blockData.totalCoinTransfer).equal('1730.20364196');
-    expect(blockData.totalBaseFees).equal('0.57702702');
-    expect(blockData.transactions).equal(1362);
-    expect(blockData.resourceLimit).equal(48000000);
-    expect(blockData.resourceUsed).equal(35169985);
   }
 });

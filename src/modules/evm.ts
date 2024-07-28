@@ -1,4 +1,3 @@
-import BigNumber from 'bignumber.js';
 import { PublicClient, createPublicClient, http } from 'viem';
 import { getBlock, getBlockNumber } from 'viem/actions';
 
@@ -67,13 +66,12 @@ export default class EvmChainAdapter extends ChainAdapter {
             size: Number(rawBlock.size),
             timestamp: Number(rawBlock.timestamp),
 
-            totalCoinTransfer: '0',
-            totalBaseFees: '0',
+            throughput: {
+              resourceLimit: Number(rawBlock.gasLimit),
+              resourceUsed: Number(rawBlock.gasUsed),
+            },
 
             transactions: rawBlock.transactions.length,
-
-            resourceLimit: Number(rawBlock.gasLimit),
-            resourceUsed: Number(rawBlock.gasUsed),
 
             senderAddresses: [],
           };
@@ -87,27 +85,6 @@ export default class EvmChainAdapter extends ChainAdapter {
 
             // count unique addresses
             senderAddresses[normalizeAddress(transaction.from)] = true;
-
-            // count coin volume transfer
-            blockData.totalCoinTransfer = new BigNumber(blockData.totalCoinTransfer)
-              .plus(new BigNumber(transaction.value.toString()).dividedBy(1e18))
-              .toString(10);
-          }
-
-          if (rawBlock.withdrawals) {
-            blockData.totalCoinWithdrawn = '0';
-            for (const withdrawal of rawBlock.withdrawals) {
-              blockData.totalCoinWithdrawn = new BigNumber(blockData.totalCoinWithdrawn)
-                .plus(new BigNumber(withdrawal.amount.toString(), 16).dividedBy(1e9))
-                .toString(10);
-            }
-          }
-
-          if (rawBlock.baseFeePerGas) {
-            blockData.totalBaseFees = new BigNumber(rawBlock.baseFeePerGas.toString())
-              .multipliedBy(new BigNumber(rawBlock.gasUsed.toString()))
-              .dividedBy(1e18)
-              .toString(10);
           }
 
           blockData.senderAddresses = Object.keys(senderAddresses);

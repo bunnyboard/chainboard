@@ -28,3 +28,9 @@ name = "sui"
 family = "sui"
 startBlock = 0
 nodeRpcs = ["https://fullnode.mainnet.sui.io"]
+
+[blockchains.aptos]
+name = "aptos"
+family = "aptos"
+startBlock = 0
+nodeRpcs = ["https://api.mainnet.aptoslabs.com"]

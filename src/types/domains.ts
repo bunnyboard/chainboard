@@ -1,8 +1,11 @@
 import { ChainFamily } from './configs';
 
-export interface EventLogBasic {
-  contract: string;
-  signature: string;
+// present limit of block space in blockchain
+// for example, on evm chains, we use gasLimit and gasUsed
+// on solana, we use compound unit used with compound unit limit
+export interface BlockThroughput {
+  resourceLimit: number;
+  resourceUsed: number;
 }
 
 export interface RawdataBlock {
@@ -15,28 +18,17 @@ export interface RawdataBlock {
   // block number
   number: number;
 
-  // size in bytes
-  size?: number;
-
   // unix timestamp
   timestamp: number;
 
-  // native coin transfer volume
-  // simply count tx.value
-  totalCoinTransfer: string;
+  // size in bytes
+  size?: number;
 
-  // total base fees
-  totalBaseFees: string;
-
-  // eth2 ETH withdrawal
-  totalCoinWithdrawn?: string;
+  // block throughput
+  throughput: BlockThroughput | null;
 
   // total number of transactions were transact in all blocks
   transactions: number;
-
-  // gas on evm or compute on solana
-  resourceLimit: number;
-  resourceUsed: number;
 
   // address trigger to send the transaction
   senderAddresses: Array<string>;

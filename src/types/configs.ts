@@ -4,6 +4,7 @@ export const ChainFamilies = {
   evm: 'evm',
   solana: 'solana',
   sui: 'sui',
+  aptos: 'aptos',
 };
 const AllChainFamilies = Object.values(ChainFamilies);
 export type ChainFamily = (typeof AllChainFamilies)[number];

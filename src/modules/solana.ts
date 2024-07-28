@@ -4,7 +4,6 @@ import ChainAdapter from './chain';
 import { ContextStorages } from '../types/namespaces';
 import axios from 'axios';
 import { RawdataBlock } from '../types/domains';
-import BigNumber from 'bignumber.js';
 import { SolanaBlockComputeUnits } from '../configs/constants';
 
 export default class SolanaChainAdapter extends ChainAdapter {
@@ -72,11 +71,10 @@ export default class SolanaChainAdapter extends ChainAdapter {
           number: blockNumber,
           timestamp: Number(response.result.blockTime),
 
-          totalCoinTransfer: '0',
-          totalBaseFees: '0',
-
-          resourceLimit: SolanaBlockComputeUnits,
-          resourceUsed: 0,
+          throughput: {
+            resourceLimit: SolanaBlockComputeUnits,
+            resourceUsed: 0,
+          },
 
           transactions: response.result.transactions.length,
 
@@ -85,29 +83,15 @@ export default class SolanaChainAdapter extends ChainAdapter {
 
         const senderAddresses: { [key: string]: boolean } = {};
         for (const transaction of response.result.transactions) {
-          if (blockData.resourceUsed !== undefined) {
-            // https://github.com/solana-developers/cu_optimizations
-            blockData.resourceUsed += Number(transaction.meta.computeUnitsConsumed);
+          if (blockData.throughput) {
+            if (blockData.throughput.resourceUsed !== undefined) {
+              // https://github.com/solana-developers/cu_optimizations
+              blockData.throughput.resourceUsed += Number(transaction.meta.computeUnitsConsumed);
+            }
           }
 
           const signer = transaction.transaction.message.accountKeys[0];
           senderAddresses[signer] = true;
-
-          for (let i = 0; i < transaction.meta.preBalances.length; i++) {
-            const preBalance = new BigNumber(transaction.meta.preBalances[i]);
-            const postBalance = new BigNumber(transaction.meta.postBalances[i]);
-            if (preBalance.lt(postBalance)) {
-              blockData.totalCoinTransfer = new BigNumber(blockData.totalCoinTransfer)
-                .plus(postBalance.minus(preBalance).dividedBy(1e8))
-                .toString(10);
-            }
-          }
-
-          if (blockData.totalBaseFees) {
-            blockData.totalBaseFees = new BigNumber(blockData.totalBaseFees)
-              .plus(new BigNumber(transaction.meta.fee.toString()).dividedBy(1e8))
-              .toString(10);
-          }
         }
 
         blockData.senderAddresses = Object.keys(senderAddresses);

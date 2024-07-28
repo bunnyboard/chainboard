@@ -75,7 +75,7 @@ export default class SuiChainAdapter extends ChainAdapter {
 
           senderAddresses: [],
         };
-  
+
         const transactions = await this.callRpc(nodeRpc, {
           jsonrpc: '2.0',
           id: 0,

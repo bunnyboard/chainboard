@@ -1,6 +1,7 @@
 import { DefaultServiceInterval } from '../configs';
 import EnvConfig from '../configs/envConfig';
 import { sleep } from '../lib/utils';
+import AptosChainAdapter from '../modules/aptos';
 import EvmChainAdapter from '../modules/evm';
 import SolanaChainAdapter from '../modules/solana';
 import SuiChainAdapter from '../modules/sui';
@@ -42,6 +43,10 @@ export class CollectCommand extends BasicCommand {
           }
           case ChainFamilies.sui: {
             adapter = new SuiChainAdapter(storages, EnvConfig.blockchains[chain]);
+            break;
+          }
+          case ChainFamilies.aptos: {
+            adapter = new AptosChainAdapter(storages, EnvConfig.blockchains[chain]);
             break;
           }
           default: {

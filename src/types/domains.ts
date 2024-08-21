@@ -1,19 +1,14 @@
 import { ChainFamily } from './configs';
 
-// present limit of block space in blockchain
-// for example, on evm chains, we use gasLimit and gasUsed
-// on solana, we use compound unit used with compound unit limit
-export interface BlockThroughput {
-  resourceLimit: number;
-  resourceUsed: number;
-}
-
-export interface RawdataBlock {
+export interface BlockData {
   // chain name
   chain: string;
 
   // chain family
   family: ChainFamily;
+
+  // native token
+  coin: string;
 
   // block number
   number: number;
@@ -21,15 +16,15 @@ export interface RawdataBlock {
   // unix timestamp
   timestamp: number;
 
-  // size in bytes
-  size?: number;
+  // the percentage of block resource limit was filled
+  utilization: string;
 
-  // block throughput
-  throughput: BlockThroughput | null;
+  // total fees (in native coin) were paid
+  totalFeesPaid: string;
 
-  // total number of transactions were transact in all blocks
+  // number of transactions were transact in this block
   transactions: number;
 
-  // address trigger to send the transaction
+  // unique addresses trigger to send transactions
   senderAddresses: Array<string>;
 }

@@ -13,6 +13,12 @@ export interface Blockchain {
   // ex: ethereum
   name: string;
 
+  // native fee token symbol, ex: ETH, BTC, SOL
+  coin: string;
+
+  // some node providers provide some extension, extended rpc calls
+  extension?: 'alchemy' | undefined;
+
   // default: evm, more coming soon
   family: ChainFamily;
 
@@ -24,9 +30,7 @@ export interface Blockchain {
 }
 
 export interface DatabaseCollectionConfig {
-  cachingData: MongoCollectionConfig;
-
-  rawdataBlocks: MongoCollectionConfig;
+  blockchainDataBlocks: MongoCollectionConfig;
 }
 
 export interface EnvConfig {

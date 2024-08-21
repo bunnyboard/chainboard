@@ -4,7 +4,7 @@ import logger from '../lib/logger';
 import { formatTime } from '../lib/utils';
 import ExecuteSession from '../services/execute';
 import { Blockchain, ChainFamilies } from '../types/configs';
-import { RawdataBlock } from '../types/domains';
+import { BlockData } from '../types/domains';
 import { ContextStorages, IChainAdapter } from '../types/namespaces';
 import { RunCollectorOptions } from '../types/options';
 
@@ -26,7 +26,7 @@ export default class ChainAdapter implements IChainAdapter {
     return 0;
   }
 
-  public async getBlockData(blockNumber: number): Promise<RawdataBlock | null> {
+  public async getBlockData(blockNumber: number): Promise<BlockData | null> {
     return null;
   }
 
@@ -43,7 +43,7 @@ export default class ChainAdapter implements IChainAdapter {
     // we find the latest block number from database
     if (!options.force) {
       const latestBlockFromDb = await this.storages.database.find({
-        collection: envConfig.mongodb.collections.rawdataBlocks.name,
+        collection: envConfig.mongodb.collections.blockchainDataBlocks.name,
         query: {
           chain: this.chainConfig.name,
         },
@@ -71,7 +71,7 @@ export default class ChainAdapter implements IChainAdapter {
       const blockData = await this.getBlockData(startBlock);
       if (blockData) {
         await this.storages.database.update({
-          collection: EnvConfig.mongodb.collections.rawdataBlocks.name,
+          collection: EnvConfig.mongodb.collections.blockchainDataBlocks.name,
           keys: {
             chain: this.chainConfig.name,
             number: blockData.number,
@@ -82,7 +82,7 @@ export default class ChainAdapter implements IChainAdapter {
           upsert: true,
         });
 
-        this.execute.endSession('updated raw block data', {
+        this.execute.endSession('updated chain block data', {
           service: this.name,
           chain: this.chainConfig.name,
           number: blockData.number,

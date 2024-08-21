@@ -19,22 +19,14 @@ if (!rawConfigs) {
   process.exit(0);
 }
 
+const MongodbPrefix = 'board';
 const envConfig: EnvConfig = {
   mongodb: {
     connectionUri: rawConfigs.database.connectionUri,
     databaseName: rawConfigs.database.databaseName,
     collections: {
-      cachingData: {
-        name: 'cachingData',
-        indies: [
-          {
-            name: 1,
-          },
-        ],
-      },
-
-      rawdataBlocks: {
-        name: 'rawdataBlocks',
+      blockchainDataBlocks: {
+        name: `${MongodbPrefix}.blockchainDataBlocks`,
         indies: [
           {
             chain: 1,

@@ -1,10 +1,7 @@
 import { DefaultServiceInterval } from '../configs';
 import EnvConfig from '../configs/envConfig';
 import { sleep } from '../lib/utils';
-import AptosChainAdapter from '../modules/aptos';
 import EvmChainAdapter from '../modules/evm';
-import SolanaChainAdapter from '../modules/solana';
-import SuiChainAdapter from '../modules/sui';
 import { ChainFamilies } from '../types/configs';
 import { ContextStorages, IChainAdapter } from '../types/namespaces';
 import { BasicCommand } from './basic';
@@ -37,20 +34,25 @@ export class CollectCommand extends BasicCommand {
 
         let adapter: IChainAdapter;
         switch (config.family) {
-          case ChainFamilies.solana: {
-            adapter = new SolanaChainAdapter(storages, EnvConfig.blockchains[chain]);
-            break;
-          }
-          case ChainFamilies.sui: {
-            adapter = new SuiChainAdapter(storages, EnvConfig.blockchains[chain]);
-            break;
-          }
-          case ChainFamilies.aptos: {
-            adapter = new AptosChainAdapter(storages, EnvConfig.blockchains[chain]);
-            break;
-          }
-          default: {
+          case ChainFamilies.evm: {
             adapter = new EvmChainAdapter(storages, EnvConfig.blockchains[chain]);
+            break;
+          }
+          // case ChainFamilies.solana: {
+          //   adapter = new SolanaChainAdapter(storages, EnvConfig.blockchains[chain]);
+          //   break;
+          // }
+          // case ChainFamilies.sui: {
+          //   adapter = new SuiChainAdapter(storages, EnvConfig.blockchains[chain]);
+          //   break;
+          // }
+          // case ChainFamilies.aptos: {
+          //   adapter = new AptosChainAdapter(storages, EnvConfig.blockchains[chain]);
+          //   break;
+          // }
+          default: {
+            console.log(`Adapter not found for chain ${chain}`);
+            process.exit(0);
           }
         }
 
@@ -76,7 +78,7 @@ export class CollectCommand extends BasicCommand {
         type: 'string',
         default: '',
         describe:
-          'Collect all protocols data on given list of chain seperated by comma, ex: --chain "ethereum,arbitrum".',
+          'Collect all protocols data on given list of chain seperated by comma, ex: --chain "ethereum,arbitrum"',
       },
       fromBlock: {
         type: 'number',

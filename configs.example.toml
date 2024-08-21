@@ -8,29 +8,34 @@ databaseName = ""
 [blockchains.ethereum]
 name = "ethereum"
 family = "evm"
+coin = "ETH"
 startBlock = 18895915
 nodeRpcs = ["https://eth.llamarpc.com", "https://eth-pokt.nodies.app"]
 
 [blockchains.arbitrum]
 name = "arbitrum"
 family = "evm"
+coin = "ETH"
 startBlock = 0 # auto sync from recently 100 blocks
 nodeRpcs = ["https://arbitrum.llamarpc.com"]
 
 [blockchains.solana]
 name = "solana"
 family = "solana"
+coin = "SOL"
 startBlock = 0
 nodeRpcs = ["https://api.devnet.solana.com"]
 
 [blockchains.sui]
 name = "sui"
 family = "sui"
+coin = "SUI"
 startBlock = 0
 nodeRpcs = ["https://fullnode.mainnet.sui.io"]
 
 [blockchains.aptos]
 name = "aptos"
 family = "aptos"
+coin = "APT"
 startBlock = 0
 nodeRpcs = ["https://api.mainnet.aptoslabs.com"]

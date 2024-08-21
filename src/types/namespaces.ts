@@ -1,7 +1,7 @@
 import { IMemcacheService } from '../services/caching/domains';
 import { IDatabaseService } from '../services/database/domains';
 import { Blockchain } from './configs';
-import { RawdataBlock } from './domains';
+import { BlockData } from './domains';
 import { RunCollectorOptions } from './options';
 
 export interface ContextStorages {
@@ -20,7 +20,7 @@ export interface IChainAdapter {
   getLatestBlockNumber: () => Promise<number>;
 
   // query block data
-  getBlockData: (blockNumber: number) => Promise<RawdataBlock | null>;
+  getBlockData: (blockNumber: number) => Promise<BlockData | null>;
 
   run: (options: RunCollectorOptions) => Promise<void>;
 }

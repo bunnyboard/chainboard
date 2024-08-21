@@ -5,8 +5,10 @@ import logger from '../lib/logger';
 import { normalizeAddress } from '../lib/utils';
 import { Blockchain, ChainFamilies } from '../types/configs';
 import ChainAdapter from './chain';
-import { RawdataBlock } from '../types/domains';
+import { BlockData } from '../types/domains';
 import { ContextStorages } from '../types/namespaces';
+import axios from 'axios';
+import BigNumber from 'bignumber.js';
 
 export default class EvmChainAdapter extends ChainAdapter {
   public readonly name: string = 'chain.evm';
@@ -45,7 +47,7 @@ export default class EvmChainAdapter extends ChainAdapter {
     return 0;
   }
 
-  public async getBlockData(blockNumber: number): Promise<RawdataBlock | null> {
+  public async getBlockData(blockNumber: number): Promise<BlockData | null> {
     if (this.chainConfig.family !== ChainFamilies.evm) {
       return null;
     }
@@ -59,20 +61,17 @@ export default class EvmChainAdapter extends ChainAdapter {
         });
 
         if (rawBlock) {
-          const blockData: RawdataBlock = {
+          const blockData: BlockData = {
             chain: this.chainConfig.name,
             family: this.chainConfig.family,
+            coin: this.chainConfig.coin,
             number: Number(rawBlock.number),
-            size: Number(rawBlock.size),
             timestamp: Number(rawBlock.timestamp),
-
-            throughput: {
-              resourceLimit: Number(rawBlock.gasLimit),
-              resourceUsed: Number(rawBlock.gasUsed),
-            },
-
+            utilization: new BigNumber(rawBlock.gasUsed.toString())
+              .dividedBy(new BigNumber(rawBlock.gasLimit.toString()))
+              .toString(10),
+            totalFeesPaid: '0',
             transactions: rawBlock.transactions.length,
-
             senderAddresses: [],
           };
 
@@ -88,6 +87,41 @@ export default class EvmChainAdapter extends ChainAdapter {
           }
 
           blockData.senderAddresses = Object.keys(senderAddresses);
+
+          let blockTransactionReceipts: Array<any> = [];
+          if (this.chainConfig.extension === 'alchemy') {
+            const response = await axios.post(nodeRpc, {
+              id: 1,
+              jsonrpc: '2.0',
+              method: 'alchemy_getTransactionReceipts',
+              params: [
+                {
+                  blockNumber: `0x${blockNumber.toString(16)}`,
+                },
+              ],
+            });
+            if (response && response.data) {
+              blockTransactionReceipts = response.data.result.receipts;
+            }
+          } else {
+            for (const transaction of rawBlock.transactions) {
+              const receipt = await client.getTransactionReceipt({
+                hash: transaction.hash as any,
+              });
+              if (receipt) {
+                blockTransactionReceipts.push(receipt);
+              }
+            }
+          }
+
+          for (const transactionReceipt of blockTransactionReceipts) {
+            const transactionFeePaid = new BigNumber(transactionReceipt.gasUsed.toString(), 16)
+              .multipliedBy(new BigNumber(transactionReceipt.effectiveGasPrice.toString(), 16))
+              .dividedBy(1e18);
+            blockData.totalFeesPaid = new BigNumber(blockData.totalFeesPaid)
+              .plus(new BigNumber(transactionFeePaid))
+              .toString(10);
+          }
 
           return blockData;
         }

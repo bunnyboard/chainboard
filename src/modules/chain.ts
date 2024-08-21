@@ -3,7 +3,7 @@ import EnvConfig from '../configs/envConfig';
 import logger from '../lib/logger';
 import { formatTime } from '../lib/utils';
 import ExecuteSession from '../services/execute';
-import { Blockchain, ChainFamilies } from '../types/configs';
+import { Blockchain } from '../types/configs';
 import { BlockData } from '../types/domains';
 import { ContextStorages, IChainAdapter } from '../types/namespaces';
 import { RunCollectorOptions } from '../types/options';
@@ -28,6 +28,43 @@ export default class ChainAdapter implements IChainAdapter {
 
   public async getBlockData(blockNumber: number): Promise<BlockData | null> {
     return null;
+  }
+
+  public async updateBlockData(blockNumber: number): Promise<void> {
+    const executeSession = new ExecuteSession();
+    executeSession.startSessionMuted();
+
+    let blockData = null;
+    while (blockData === null) {
+      blockData = await this.getBlockData(blockNumber);
+      if (blockData) {
+        await this.storages.database.update({
+          collection: EnvConfig.mongodb.collections.blockchainDataBlocks.name,
+          keys: {
+            chain: this.chainConfig.name,
+            number: blockData.number,
+          },
+          updates: {
+            ...blockData,
+          },
+          upsert: true,
+        });
+
+        executeSession.endSession('updated chain block data', {
+          service: this.name,
+          chain: this.chainConfig.name,
+          number: blockData.number,
+          age: formatTime(blockData.timestamp),
+          txns: blockData.transactions,
+        });
+      }
+    }
+  }
+
+  public async updateBlockRange(fromBlock: number, toBlock: number): Promise<void> {
+    for (let i = fromBlock; i <= toBlock; i++) {
+      await this.updateBlockData(i);
+    }
   }
 
   protected async runCollector(options: RunCollectorOptions): Promise<void> {
@@ -65,50 +102,7 @@ export default class ChainAdapter implements IChainAdapter {
       toBlock: latestBlock,
     });
 
-    while (startBlock <= latestBlock) {
-      this.execute.startSessionMuted();
-
-      const blockData = await this.getBlockData(startBlock);
-      if (blockData) {
-        await this.storages.database.update({
-          collection: EnvConfig.mongodb.collections.blockchainDataBlocks.name,
-          keys: {
-            chain: this.chainConfig.name,
-            number: blockData.number,
-          },
-          updates: {
-            ...blockData,
-          },
-          upsert: true,
-        });
-
-        this.execute.endSession('updated chain block data', {
-          service: this.name,
-          chain: this.chainConfig.name,
-          number: blockData.number,
-          age: formatTime(blockData.timestamp),
-          txns: blockData.transactions,
-        });
-      } else {
-        if (this.chainConfig.family === ChainFamilies.solana || this.chainConfig.family === ChainFamilies.sui) {
-          // ignore missing blocks on solana
-          logger.warn('failed to get block data from all rpcs, skipped', {
-            service: this.name,
-            chain: this.chainConfig.name,
-            number: startBlock,
-          });
-        } else {
-          logger.error('failed to get block data from all rpcs', {
-            service: this.name,
-            chain: this.chainConfig.name,
-            number: startBlock,
-          });
-          process.exit(0);
-        }
-      }
-
-      startBlock += 1;
-    }
+    this.updateBlockRange(startBlock, latestBlock);
   }
 
   public async run(options: RunCollectorOptions): Promise<void> {

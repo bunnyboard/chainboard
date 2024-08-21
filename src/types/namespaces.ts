@@ -22,5 +22,8 @@ export interface IChainAdapter {
   // query block data
   getBlockData: (blockNumber: number) => Promise<BlockData | null>;
 
+  // get and update block data into database
+  updateBlockData: (blockNumber: number) => Promise<void>;
+
   run: (options: RunCollectorOptions) => Promise<void>;
 }
